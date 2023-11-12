@@ -3,7 +3,7 @@
    - EBIMU applied
    - Neokey setup
    - Heading calibrated (towards 0 degree)
-   - 1 player with 4ch audio (44.1Khz,
+   - 1 player with 4ch audio (4 4.1Khz,
 
    TODO
    - LPS
