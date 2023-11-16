@@ -1,0 +1,140 @@
+#N canvas 706 243 1159 830 12;
+#X declare -lib Gem;
+#X obj 90 186 gemhead;
+#X floatatom 220 155 5 0 0 0 - - -;
+#X msg 150 156 auto \$1;
+#X obj 150 137 tgl 15 0 empty empty empty 20 8 0 8 -262144 -1 -1 0
+1;
+#X floatatom 118 278 5 0 0 0 - - -;
+#X text 436 417 load and play-back a movie;
+#X text 212 134 frame;
+#N canvas 243 65 604 505 README 0;
+#X text 49 38 the pix_film is the same as pix_movie but does not texture
+the movie immediately onto a Geo.;
+#X text 50 77 therefore it is possible to manipulate the frames;
+#X text 48 106 the pix_film object will return the movie in it's (more
+or less) native color-space. most of the times \, this will probably
+be not RGBA but RGB or BGR (on windows machines).;
+#X text 48 153 do not worry about this. however \, most of the pix-manips
+will only work correctly on RGBA-pixes. if this is the case and you
+send it a non-RGBA picture it will say something like "pix_object cannot
+handle gray image".;
+#X text 49 226 to avoid this \, you can convert your pix-buff to RGBA
+using "pix_rgba". this will be a no-cost operation if the pix_buf already
+is in RGBA.;
+#X text 36 334 you might notice a significant performance-enhancement
+by just turning the [pix_rgba] off (via the toggle). however \, not
+[pix_rgba] is expensive but actually the [pix_convolve] (which appears
+to do nothing when initialized with "0 0 0 0 1 0 0 0 0". When [pix_rgba]
+is "off" \, the [pix_convolve] will be bypassed \, and therefore be
+very fast.;
+#X restore 599 371 pd README;
+#X obj 93 479 square 4;
+#X obj 90 233 pix_film;
+#X floatatom 152 453 5 0 0 0 - - -;
+#X obj 289 252 t f;
+#X obj 93 406 pix_texture;
+#X obj 309 365 t a;
+#X msg 374 391 open \$1;
+#X obj 374 369 symbol;
+#X obj 435 369 openpanel;
+#X obj 527 369 bng 15 250 50 0 empty empty empty 17 7 0 10 -262144
+-1 -1;
+#X obj 682 5 declare -lib Gem;
+#X msg 332 245 open /home/som1/Documents/[Project]2023_Nabi/movie_audio/1_BAC(MOV).mp4
+;
+#X obj 315 123 metro;
+#X msg 383 58 1000;
+#X obj 383 34 loadbang;
+#X obj 314 155 f;
+#X obj 353 156 + 1;
+#X msg 388 118 0;
+#X obj 315 101 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 1
+1;
+#X obj 351 511 / 255;
+#X obj 220 178 s frame;
+#X obj 348 477 r frame;
+#X floatatom 351 569 5 0 0 0 - - -;
+#X obj 351 542 int;
+#X obj 416 510 % 255;
+#X floatatom 404 571 5 0 0 0 - - -;
+#X obj 298 511 / 255;
+#X obj 300 545 int;
+#X floatatom 297 571 5 0 0 0 - - -;
+#N canvas 765 672 698 539 fullscreen 1;
+#X text -88 -108 fullscreen 0/1: make fullscreen-window (if possible
+with the dimensions passed via "dimen");
+#X text -88 -64 on platform's that support it (currently: Mac OS X)
+you can specify on which screen you want to go fullscreen (if you have
+several screens): e.g. "fullscreen 2" will make a fullscreen-window
+on Screen2;
+#X text -86 -130 FULLSCREEN SUPPORT;
+#X obj -85 -1 vradio 15 1 0 3 empty empty empty 0 -8 0 10 -262144 -1
+-1 1;
+#X floatatom -85 50 5 0 0 0 - - -;
+#X msg -85 71 reset \, fullscreen \$1 \, create \, 1;
+#X text -63 -4 deactivate fullscreen;
+#X text -64 13 fullscreen on screen 1;
+#X text -64 29 fullscreen on screen 2;
+#X msg -72 126 0 \, destroy;
+#X text -89 182 BE CAREFUL : when you are in fullscreen mode \, you
+have no more access to the other windows of your system.;
+#N canvas 107 50 450 300 esc 0;
+#X obj 65 20 gemkeyboard;
+#X obj 65 167 outlet;
+#X obj 89 71 keyname;
+#X obj 128 96 sel Escape;
+#X obj 65 41 sel 53;
+#X obj 189 47 sel Escape;
+#X obj 150 22 gemkeyname;
+#X connect 0 0 4 0;
+#X connect 2 1 3 0;
+#X connect 3 0 1 0;
+#X connect 4 0 1 0;
+#X connect 5 0 1 0;
+#X connect 6 1 5 0;
+#X restore -72 104 pd esc;
+#X text 111 11 press ESC to quit;
+#X obj -85 155 gemwin;
+#X connect 3 0 4 0;
+#X connect 4 0 5 0;
+#X connect 5 0 13 0;
+#X connect 9 0 13 0;
+#X connect 11 0 9 0;
+#X restore 790 532 pd fullscreen;
+#X obj 80 61 r \$0-gemwin-in;
+#X obj 381 83 / 20;
+#X connect 0 0 9 0;
+#X connect 1 0 9 1;
+#X connect 1 0 28 0;
+#X connect 2 0 9 0;
+#X connect 3 0 2 0;
+#X connect 9 0 12 0;
+#X connect 9 1 4 0;
+#X connect 9 2 11 0;
+#X connect 10 0 8 1;
+#X connect 11 0 9 1;
+#X connect 12 0 8 0;
+#X connect 13 0 9 0;
+#X connect 14 0 13 0;
+#X connect 15 0 14 0;
+#X connect 16 0 15 0;
+#X connect 17 0 16 0;
+#X connect 19 0 13 0;
+#X connect 20 0 23 0;
+#X connect 21 0 39 0;
+#X connect 22 0 21 0;
+#X connect 23 0 24 0;
+#X connect 23 0 1 0;
+#X connect 24 0 23 1;
+#X connect 25 0 23 1;
+#X connect 26 0 20 0;
+#X connect 27 0 31 0;
+#X connect 29 0 27 0;
+#X connect 29 0 32 0;
+#X connect 30 0 34 0;
+#X connect 31 0 30 0;
+#X connect 32 0 33 0;
+#X connect 34 0 35 0;
+#X connect 35 0 36 0;
+#X connect 39 0 20 1;
