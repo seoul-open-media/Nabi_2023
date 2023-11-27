@@ -15,7 +15,7 @@ void getImuData() {
 
     case STATE_IMU_POLL_WAIT:
       if (millis() > imuPollTime + imu_poll_wait_time) { // wait until timeout of 70ms.
-        Serial.println("IMU poll timed out");
+     //   Serial.println("IMU poll timed out");
         state = STATE_INIT;
       } else {
         if (i2cuart.available() > 0) {   // we got data from EBIMU

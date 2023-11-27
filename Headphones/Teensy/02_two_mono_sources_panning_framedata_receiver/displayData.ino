@@ -50,7 +50,7 @@ void displayData05() {
   display.print("MixHeadphones ");
   display.println(my_address);
   display.print("numZone: "); display.println(numZone);
-  
+
   display.println("D from Anchor:");
   for (int i = 0; i < 3; i++) {
     display.print(distance_result[i] / 10.0); // DISTANCE IN METER
@@ -61,11 +61,12 @@ void displayData05() {
   display.println(x);
   display.print("Y= ");
   display.println(y);
-//  display.println();
+  //  display.println();
 
   display.print("elapsed time:");
   display.print(elapsed_time);
   display.print("ms.");
+
   display.display();
 }
 // 1 or more anchor distancing error
@@ -97,6 +98,41 @@ void displayData06() {
   display.display();
 }
 
+void displayData07() {
+  display.clearDisplay();
+  display.setCursor(0, 0);
+  display.print("MixHeadphones ");
+  display.println(my_address);
+  display.print("numZone: "); display.println(numZone);
+
+  display.println("D from Anchor:");
+  for (int i = 0; i < 3; i++) {
+    display.print(distance_result[i] / 10.0); // DISTANCE IN METER
+    display.print(", ");
+  }
+  display.println();
+  display.print("X= ");
+  display.print(x);
+  display.print(", Y= ");
+  display.println(y);
+  //  display.println();
+
+//  display.print("elapsed time:");
+//  display.print(elapsed_time);
+//  display.print("ms.");
+
+  display.print("Heading: ");
+  display.println(imuHead);
+
+  display.print("Frame1: ");
+  display.println(frame[0]);
+  display.print("Frame2: ");
+  display.println(frame[1]);
+  display.print("Frame3: ");
+  display.println(frame[2]);
+
+  display.display();
+}
 
 void displayData() {
   int reading;
@@ -141,7 +177,7 @@ void displayData() {
 }
 
 void displayIMUData() {
-  
+
   display.clearDisplay();
   display.setCursor(0, 0);
   display.setTextSize(1);

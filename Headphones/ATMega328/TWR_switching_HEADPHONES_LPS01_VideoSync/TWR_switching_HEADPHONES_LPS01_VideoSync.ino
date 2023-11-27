@@ -355,31 +355,34 @@ void sendDistance() {
 }
 
 void sendFrameData() {
-
+  /*
   byte len_data = 11;
   // 255, FRAME_DATA, frameMSB[0], frameMiddleB[0], frameLSB[0], frameMSB[1], frameMiddleB[1],frameLSB[1],frameMSB[2], frameMiddleB[2],frameLSB[2]
-  byte s_data[len_data] = {255, 0,    0, 0, 0, 0, 0, 0, 0, 0, 0};
-  s_data[1] = FRAME_DATA;
+  byte f_data[len_data] = {255, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0};
+  f_data[1] = FRAME_DATA;
 
-  s_data[2] = frameMSB[0];
-  s_data[3] = frameMiddleB[0];
-  s_data[4] = frameLSB[0];
+  f_data[2] = frameMSB[0];
+  f_data[3] = frameMiddleB[0];
+  f_data[4] = frameLSB[0];
 
-  s_data[5] = frameMSB[1];
-  s_data[6] = frameMiddleB[1];
-  s_data[7] = frameLSB[1];
+  f_data[5] = frameMSB[1];
+  f_data[6] = frameMiddleB[1];
+  f_data[7] = frameLSB[1];
 
-  s_data[8] = frameMSB[2];
-  s_data[9] = frameMiddleB[2];
-  s_data[10] = frameLSB[2];
+  f_data[8] = frameMSB[2];
+  f_data[9] = frameMiddleB[2];
+  f_data[10] = frameLSB[2];
 
 
 
-  //  Serial.write(s_data, len_data);
+  Serial.write(f_data, len_data);
+  */
+  Serial.write(255);Serial.write(FRAME_DATA);
   oled.clear();
   oled.print("frame data: ");
   for (int i = 0; i < 3; i++) {
     oled.print(frameMSB[i]); oled.print(", "); oled.print(frameMiddleB[i]); oled.print(", "); oled.print(frameLSB[i]); oled.print(", ");
+   Serial.write(frameMSB[i]);Serial.write(frameMiddleB[i]);Serial.write(frameLSB[i]);
   }
   oled.println();
 }

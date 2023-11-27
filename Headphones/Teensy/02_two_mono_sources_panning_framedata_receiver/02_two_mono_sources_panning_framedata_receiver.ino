@@ -152,21 +152,6 @@ int row, num_menu = 0;
 #define STATE_ZONE1 1
 #define STATE_ZONE2 2
 
-#if defined(__IMXRT1062__)
-#define T4
-#include <utility/imxrt_hw.h> // make available set_audioClock() for setting I2S freq on Teensy 4
-#else
-#define F_I2S ((((I2S0_MCR >> 24) & 0x03) == 3) ? F_PLL : F_CPU) // calculation for I2S freq on Teensy 3
-#endif
-
-// SC16IS750 Instance for EBIMU
-SC16IS750 i2cuart = SC16IS750(SC16IS750_PROTOCOL_I2C, SC16IS750_ADDRESS_AA);
-
-// SSD1306 Instance
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire2, OLED_RESET);
-
-// Neokey Instance
-Adafruit_NeoKey_1x4 neokey;
 
 // smoothe instances for BNO055
 //Smoothed <float> smoothed1;
@@ -176,6 +161,7 @@ Adafruit_NeoKey_1x4 neokey;
 byte frameMSB[3] = {0, 0, 0};
 byte frameMiddleB[3] = {0, 0, 0};
 byte frameLSB[3] = {0, 0, 0};
+int frame[3] = {0, 0, 0};
 
 //-------------IMU----------------------------
 String imuStart = "<start>";
@@ -248,6 +234,24 @@ int serToAct = 0;
 long lastMillis, lastMillisImu, lastMillisImuUpdate, lastMillisSerial, calibMillis  = 0;
 
 
+
+
+#if defined(__IMXRT1062__)
+#define T4
+#include <utility/imxrt_hw.h> // make available set_audioClock() for setting I2S freq on Teensy 4
+#else
+#define F_I2S ((((I2S0_MCR >> 24) & 0x03) == 3) ? F_PLL : F_CPU) // calculation for I2S freq on Teensy 3
+#endif
+
+// SC16IS750 Instance for EBIMU
+SC16IS750 i2cuart = SC16IS750(SC16IS750_PROTOCOL_I2C, SC16IS750_ADDRESS_AA);
+
+// SSD1306 Instance
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire2, OLED_RESET);
+
+// Neokey Instance
+Adafruit_NeoKey_1x4 neokey;
+
 //-----------neoKey-----------------------------
 boolean update_screen = true;
 boolean keyPressed[4] = {false, false, false, false};
@@ -283,7 +287,6 @@ PredicateDebouncer debouncers[4] = { PredicateDebouncer(&key_A_predicate, 5),
 int led_states[4] = {LOW, LOW, LOW, LOW};
 int neoKey_num, entry_counter = 0;
 bool neoKey_enter, neoKey_exit = false;
-
 
 // ================================================================
 // ===                      INITIAL SETUP                       ===
@@ -353,23 +356,23 @@ void setup() {
   } else {
     Serial.println("SC16IS750 found" );
   }
+  
+    delay(1000);
+    EBimuCommand("<sor0>"); // set EBIMU to polling mode
+    delay(500);
+    // while (i2cuart.available())Serial.print(i2cuart.read());
+    // while (1);
+    if (i2cuart.read() == 60) { // see if it's answer correctly, ascii '<'
+      // it's ok to send other commands
+      EBimuCommand("<start>");
+      Serial.println("start ebimu");
+    } else {
+      Serial.println("changing baudrate");
+      displayData01();
+      changeImuBaudrate();
+    }
 
-  delay(500);
-  EBimuCommand("<sor0>"); // set EBIMU to polling mode
-  delay(500);
-  // while (i2cuart.available())Serial.print(i2cuart.read());
-  // while (1);
-  if (i2cuart.read() == 60) { // see if it's answer correctly, ascii '<'
-    // it's ok to send other commands
-    EBimuCommand("<start>");
-    Serial.println("start ebimu");
-  } else {
-    Serial.println("changing baudrate");
-    displayData01();
-    changeImuBaudrate();
-  }
-
-
+  
   //////////////////////////////////////////////////////////////NEOKEY
   // if we find neokey, go into configuration mode
   if (neokey.begin(0x30)) {     // begin with I2C address, default is 0x30
@@ -443,7 +446,7 @@ void loop() {
 
   getImuData();
 
-  getHWSerial();    
+  getHWSerial();
 
   if (isGetPosition) {
     isGetPosition = false;
@@ -451,9 +454,9 @@ void loop() {
 
   }
 
- //   updateMixerGain();
+  //   updateMixerGain();
 
-    unsigned long currentMillis = millis();
+  unsigned long currentMillis = millis();
 
   /*
     if (currentMillis - lastMillisImu > 50) {
@@ -502,17 +505,17 @@ void loop() {
       fourMonoPanner1.setParamValue("Radius4", scaled_radius4);
       //   AudioInterrupts();
     }
- */
-    if (currentMillis - lastMillisSerial > 1000) {
-      lastMillisSerial = millis();
-      displayData05();
-      if (DEBUG) {
-        Serial.print("Angle: "); Serial.print(degPos1); Serial.print(", "); Serial.print(degPos2); Serial.print(", "); Serial.print(degPos3); Serial.print(", "); Serial.println(degPos4);
-        Serial.print("Radius: "); Serial.print(radius1); Serial.print(", "); Serial.print(radius2); Serial.print(", "); Serial.print(radius3); Serial.print(", "); Serial.println(radius4);
-        Serial.print("Scaled_Radius: "); Serial.print(scaled_radius1); Serial.print(", "); Serial.print(scaled_radius2); Serial.print(", "); Serial.print(scaled_radius3); Serial.print(", "); Serial.println(scaled_radius4);
-      }
+  */
+  if (currentMillis - lastMillisSerial > 1000) {
+    lastMillisSerial = millis();
+    displayData07();
+    if (DEBUG) {
+      Serial.print("Angle: "); Serial.print(degPos1); Serial.print(", "); Serial.print(degPos2); Serial.print(", "); Serial.print(degPos3); Serial.print(", "); Serial.println(degPos4);
+      Serial.print("Radius: "); Serial.print(radius1); Serial.print(", "); Serial.print(radius2); Serial.print(", "); Serial.print(radius3); Serial.print(", "); Serial.println(radius4);
+      Serial.print("Scaled_Radius: "); Serial.print(scaled_radius1); Serial.print(", "); Serial.print(scaled_radius2); Serial.print(", "); Serial.print(scaled_radius3); Serial.print(", "); Serial.println(scaled_radius4);
     }
- 
+  }
+
 }
 
 //float value=exp(-0.5*pow((x-mean)/sigma,2.));
