@@ -119,8 +119,8 @@ void setup() {
   DW1000Ng::attachReceivedHandler(handleReceived);
   // anchor starts by transmitting a POLL message
 
-/*
 
+/*
 #if RST_PIN >= 0
   oled.begin(&Adafruit128x64, I2C_ADDRESS, RST_PIN);
 #else // RST_PIN >= 0
@@ -139,7 +139,7 @@ void setup() {
   oled.println();
   oled.print("My_address ");
   oled.println(MY_ADDRESS);
-*/
+  */
   DW1000Ng::forceTRxOff();
   DW1000Ng::startReceive();
 
@@ -172,24 +172,26 @@ void loop() {
   }
 
   if (receivedAck == true) {
-    //     Serial.println("receivedAck");
+   // Serial.println("receivedAck");
     receivedAck = false;
     ///////////// get the distance data of LPS1,2 and update it
     byte lenData = 24; // 24bytes sent from Master, 19 was written originally
     byte r_data[lenData];
     DW1000Ng::getReceivedData(r_data, lenData);
-  //  byte to_message = r_data[17];
+    byte to_message = r_data[17];
     byte from_address = r_data[18];
     byte to_address = r_data[19];
 
     //   Serial.print("receivedAck from ");  Serial.print(from_address);Serial.print("   to address");  Serial.println(to_address);
 
     if (to_address == MY_ADDRESS && from_address == MASTER_ADDRESS) {
+      Serial.println("from Master");
       // send frame data to headphones address 3, 4
       byte lenData = 24; // 24bytes sent from Master, 19 was written originally
       byte s_data[lenData];
       for (int i = 3; i < 5; i++) {
         DW1000Ng::forceTRxOff();
+        data[17] = i;
         data[18] = MY_ADDRESS;
         data[19] = i ;
         data[20] = frameMSB ;
@@ -198,6 +200,7 @@ void loop() {
 
         DW1000Ng::setTransmitData(data, LEN_DATA);
         DW1000Ng::startTransmit();
+        frameLSB++;
         delay(10);
       }
       /*
