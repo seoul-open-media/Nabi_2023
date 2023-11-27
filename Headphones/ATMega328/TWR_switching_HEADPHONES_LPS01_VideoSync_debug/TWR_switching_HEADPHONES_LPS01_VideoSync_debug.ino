@@ -25,15 +25,6 @@
 #include <DW1000NgTime.hpp>
 #include <DW1000NgConstants.hpp>
 
-#include "SSD1306Ascii.h"
-#include "SSD1306AsciiAvrI2c.h"
-
-#define VERSION 0.1
-#define I2C_ADDRESS 0x3C
-#define RST_PIN -1
-
-SSD1306AsciiAvrI2c oled;
-
 // serial message flag
 #define SET_DEFAULT_VALUE 0
 #define SEND_SONG_INFO 1
@@ -43,8 +34,9 @@ SSD1306AsciiAvrI2c oled;
 
 //wireless message flag
 #define EXCHANGE_FINISHED 104
+#define total_num_anchors 3
 
-byte my_address, network_id, total_num_anchors, poll_ack_check_threshold;
+byte my_address, network_id, poll_ack_check_threshold;
 //#define my_address 1
 //#define poll_ack_check_threshold 4//////////////////////////11ms! total around 270ms.
 #define  resetPeriod 8 ///////////////////////////////// 8ms. is the minimum
@@ -65,8 +57,8 @@ byte r_destination_address = 1;
 byte d_data[LEN_DATA];
 byte i_data[LEN_DATA];
 byte r_data[LEN_DATA];
-byte distance_result[3]; // buffer to store ranging data
-byte failure_counter[3];
+byte distance_result[total_num_anchors]; // buffer to store ranging data
+byte failure_counter[total_num_anchors];
 byte frameMSB[3] = {0, 0, 0};
 byte frameMiddleB[3] = {0, 0, 0};
 byte frameLSB[3] = {0, 0, 0};
@@ -87,7 +79,8 @@ boolean ok_send_poll, received_poll_ack = false;
 // connection pins
 const uint8_t PIN_RST = 3; // reset pin
 const uint8_t PIN_IRQ = 2; // irq pin
-const uint8_t PIN_SS = 10; // spi select pin
+
+const uint8_t PIN_SS = 8; // spi select pin ---> Ghost Light 8, Headphones 10
 
 // TODO replace by enum
 #define POLL 0
@@ -152,17 +145,17 @@ void setup() {
   Serial.begin(57600);
   //Serial.begin(115200);
   delay(2000);
-
-  while (!(Serial.available() > 5));
-  byte first_byte = Serial.read();
-  byte second_byte = Serial.read();
-  // my_address, network_id, total_num_anchors, poll_ack_check_threshold;
-  if (first_byte == 255 && second_byte == SET_DEFAULT_VALUE) {
+  /*
+    while (!(Serial.available() > 5));
+    byte first_byte = Serial.read();
+    byte second_byte = Serial.read();
+    // my_address, network_id, total_num_anchors, poll_ack_check_threshold;
+    if (first_byte == 255 && second_byte == SET_DEFAULT_VALUE) {
     my_address = Serial.read();
     network_id = Serial.read();
     total_num_anchors = Serial.read();
     poll_ack_check_threshold = Serial.read();
-  } else {
+    } else {
     // Serial.print("Problem!");
     while (1) {
       pinMode(13, OUTPUT);
@@ -172,17 +165,17 @@ void setup() {
       delay(100);
     }
 
-  }
+    }
+  */
+  my_address = 3;
+  network_id = 10;
+  //total_num_anchors = 6;
+  poll_ack_check_threshold = 8;
 
-  //  my_address = 3;
-  //  network_id = 10;
-  //  total_num_anchors = 3;
-  //  poll_ack_check_threshold = 8;
-
-  // Serial.println(F("### DW1000Ng-arduino-ranging-Initiator ###"));
+  Serial.println(F("### DW1000Ng-arduino-ranging-Initiator ###"));
   // initialize the driver
   DW1000Ng::initialize(PIN_SS, PIN_IRQ, PIN_RST);
-  // Serial.println("DW1000Ng initialized ...");
+  Serial.println("DW1000Ng initialized ...");
   // general configuration
   DW1000Ng::applyConfiguration(DEFAULT_CONFIG);
   DW1000Ng::applyInterruptConfiguration(DEFAULT_INTERRUPT_CONFIG);
@@ -192,20 +185,20 @@ void setup() {
   DW1000Ng::setAntennaDelay(16436);
 
   DW1000Ng::setTXPower(522133279);  // 0x1F1F1F1F
-  // Serial.println(F("Committed configuration ..."));
+  Serial.println(F("Committed configuration ..."));
   // DEBUG chip info and registers pretty printed
-  /*
-    delay(1000);
-    char msg[128];
-    DW1000Ng::getPrintableDeviceIdentifier(msg);
-    Serial.print("Device ID: "); Serial.println(msg);
-    DW1000Ng::getPrintableExtendedUniqueIdentifier(msg);
-    Serial.print("Unique ID: "); Serial.println(msg);
-    DW1000Ng::getPrintableNetworkIdAndShortAddress(msg);
-    Serial.print("Network ID & Device Address: "); Serial.println(msg);
-    DW1000Ng::getPrintableDeviceMode(msg);
-    Serial.print("Device mode: "); Serial.println(msg);
-  */
+
+  delay(1000);
+  char msg[128];
+  DW1000Ng::getPrintableDeviceIdentifier(msg);
+  Serial.print("Device ID: "); Serial.println(msg);
+  DW1000Ng::getPrintableExtendedUniqueIdentifier(msg);
+  Serial.print("Unique ID: "); Serial.println(msg);
+  DW1000Ng::getPrintableNetworkIdAndShortAddress(msg);
+  Serial.print("Network ID & Device Address: "); Serial.println(msg);
+  DW1000Ng::getPrintableDeviceMode(msg);
+  Serial.print("Device mode: "); Serial.println(msg);
+
 
   // attach callback for (successfully) sent and received messages
   DW1000Ng::attachSentHandler(handleSent);
@@ -216,25 +209,6 @@ void setup() {
   initializeDataBuffer();
   //my_mode = default_mode;
   my_mode = responder_mode;
-
-#if RST_PIN >= 0
-  oled.begin(&Adafruit128x64, I2C_ADDRESS, RST_PIN);
-#else // RST_PIN >= 0
-  oled.begin(&Adafruit128x64, I2C_ADDRESS);
-#endif // RST_PIN >= 0
-
-  oled.setFont(Adafruit5x7);
-  oled.clear();
-  oled.print("IMU data adapter v. ");
-  oled.println(VERSION);
-  oled.println();
-  // oled.print("LPS Adapter");
-  oled.println();
-  oled.println();
-  oled.println("ATmega328P");
-  oled.println();
-  oled.print("My_address ");
-  oled.println(my_address);
 }
 void initializeDataBuffer() {
   for (int i = 0; i < LEN_DATA; i++) {
@@ -330,14 +304,22 @@ void transmitRange() {
 }
 
 void printResult() {
-  Serial.print("elapsed time: ");
-  Serial.println((millis() - time_stamp));
-  for (int i = 0; i < total_num_anchors; i++) {
+  /*
+    Serial.print("elapsed time: ");
+    Serial.println((millis() - time_stamp));
+    for (int i = 0; i < total_num_anchors; i++) {
     Serial.print(distance_result[i]);
     Serial.print(", ");
+    }
+    Serial.println();
+  */
+  Serial.print("frame data: ");
+  for (int i = 0; i < 3; i++) {
+    Serial.print(frameMSB[i]); Serial.print(", "); Serial.print(frameMiddleB[i]); Serial.print(", "); Serial.print(frameLSB[i]); Serial.print(", ");
   }
   Serial.println();
 }
+
 
 
 void sendDistance() {
@@ -345,22 +327,32 @@ void sendDistance() {
   byte elapsed_time = (millis() - time_stamp);
   byte len_data = 11;
   // 255, FINAL_RESULT, d1, d2, d3 ,0, 0, 0, 0,0,  elapsed_time
-  byte s_data[len_data] = {255, 0,    0, 0, 0, 0, 0, 0, 0, 0,   0};
+  byte s_data[len_data] = {255, 0,    0, 0, 0, 0, 0, 0, 0,0,   0};
   s_data[1] = FINAL_RESULT;
   memcpy(&s_data[2], distance_result, 3);
 
   s_data[10] = elapsed_time;
-  Serial.write(s_data, len_data);
+//  Serial.write(s_data, len_data);
+
+    Serial.print("elapsed time: ");
+    Serial.println((millis() - time_stamp));
+    for (int i = 0; i < total_num_anchors; i++) {
+    Serial.print(distance_result[i]);
+    Serial.print(", ");
+    }
+    Serial.println();
 
 }
 
 void sendFrameData() {
+  
 
+  byte elapsed_time = (millis() - time_stamp);
   byte len_data = 11;
   // 255, FRAME_DATA, frameMSB[0], frameMiddleB[0], frameLSB[0], frameMSB[1], frameMiddleB[1],frameLSB[1],frameMSB[2], frameMiddleB[2],frameLSB[2]
   byte s_data[len_data] = {255, 0,    0, 0, 0, 0, 0, 0, 0, 0, 0};
   s_data[1] = FRAME_DATA;
-
+ 
   s_data[2] = frameMSB[0];
   s_data[3] = frameMiddleB[0];
   s_data[4] = frameLSB[0];
@@ -373,15 +365,14 @@ void sendFrameData() {
   s_data[9] = frameMiddleB[2];
   s_data[10] = frameLSB[2];
 
+ // Serial.write(s_data, len_data);
 
-
-  //  Serial.write(s_data, len_data);
-  oled.clear();
-  oled.print("frame data: ");
+  Serial.print("frame data: ");
   for (int i = 0; i < 3; i++) {
-    oled.print(frameMSB[i]); oled.print(", "); oled.print(frameMiddleB[i]); oled.print(", "); oled.print(frameLSB[i]); oled.print(", ");
+    Serial.print(frameMSB[i]); Serial.print(", "); Serial.print(frameMiddleB[i]); Serial.print(", "); Serial.print(frameLSB[i]); Serial.print(", ");
   }
-  oled.println();
+  Serial.println();
+
 }
 
 void loop() {
@@ -417,7 +408,7 @@ void twrInitiator() {
     //////////////////////////
 
     if (ok_send_poll == true) {
-      if (i_destination_address < (total_num_anchors + 1)) { // i_destination_address 1~3
+      if (i_destination_address < (total_num_anchors + 1)) { // i_destination_address 1~6
         received_poll_ack = false;
         expectedMsgId = POLL_ACK;
         ok_send_poll = false;
@@ -438,9 +429,9 @@ void twrInitiator() {
         DW1000Ng::forceTRxOff();
         DW1000Ng::startReceive();
 
-
-
-        sendDistance();//////////////////////////////////////////////////////////////// send the final data
+        sendDistance();
+       // printResult();
+        //   sendDistanceAndFrameData();//////////////////////////////////////////////////////////////// send the final data
 
         return;
         ///////////////////////////////////////////////
@@ -476,6 +467,7 @@ void twrInitiator() {
     //Serial.println(from_address);
     ////////////if the master's message matches my address, switch to initiator_mode
     if (from_address == master_address) {
+      //  Serial.print("Initiator Received message from Master");
       if (_message == my_address) {
         // already initiator mode
       } else if (_message != my_address) {
@@ -612,12 +604,8 @@ void twrResponder() {
     byte to_address = r_data[17];
     byte from_address = r_data[18];
     byte _message = r_data[19];
-    
-    if (from_address == 5) {
-      oled.clear();
-      oled.print("from");
-      oled.println(from_address);
-    }
+    //Serial.print("responder Received message from");
+    //Serial.println(from_address);
     //Serial.print("msgId"); Serial.print(msgId); Serial.print("mode"); Serial.print(mode_from_sender); Serial.print("to_address"); Serial.print(to_address); Serial.print("from_address"); Serial.print(from_address); Serial.print("_message"); Serial.println(_message);
     ////////////if the master's message matches my address, switch to initiator_mode
     if (from_address == master_address) {
@@ -643,6 +631,7 @@ void twrResponder() {
       }
 
     } else if (from_address == 5 || from_address == 6 || from_address == 7) { //  if its the data from the VideoSync Adapter
+      //Serial.println("Got frame data");
       switch (from_address) {
         case 5:
           frameMSB[0] = r_data[20];
@@ -663,9 +652,13 @@ void twrResponder() {
         default:
           break;
       }
-
+      
       sendFrameData();
       r_resetInactive();
+      
+     // noteActivity();
+     // time_stamp = millis();
+
 
     }
 
