@@ -57,7 +57,7 @@ very fast.;
 #X obj 298 511 / 255;
 #X obj 300 545 int;
 #X floatatom 297 571 5 0 0 0 - - - 0;
-#N canvas 765 672 698 539 fullscreen 0;
+#N canvas 227 266 698 539 fullscreen 1;
 #X text -88 -108 fullscreen 0/1: make fullscreen-window (if possible
 with the dimensions passed via "dimen");
 #X text -88 -64 on platform's that support it (currently: Mac OS X)
