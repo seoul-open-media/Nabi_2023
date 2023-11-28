@@ -1,5 +1,5 @@
 /*
-   - 4 mono sources at -90(stream), 0(bird), 0(bell), 90(rain) degrees rotate upon heading with gaussian radius distribution
+ * - 3 stereo source
    - EBIMU applied
    - Neokey setup
    - Heading calibrated (towards 0 degree)
