@@ -23,13 +23,13 @@ Please keep the above information when you use this code in your project.
 //#define SC16IS750_DEBUG_PRINT
 #include <SC16IS750.h>
 #include <SPI.h>
-#include <i2c_driver_wire.h>
-
+//#include <i2c_driver_wire.h>
+#include <Wire.h>
 
 #ifdef __AVR__
- #define WIRE Wire2
+ #define WIRE Wire1
 #else // Arduino Due
- #define WIRE Wire2
+ #define WIRE Wire1
 #endif
 
 

@@ -23,8 +23,8 @@
 
 #include "Adafruit_I2CDevice.h"
 #include <Arduino.h>
-#include <i2c_driver_wire.h>
-
+//#include <i2c_driver_wire.h>
+#include <Wire.h>
 /*=========================================================================
     I2C ADDRESS/BITS
     -----------------------------------------------------------------------*/

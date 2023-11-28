@@ -1,4 +1,5 @@
-#include <i2c_driver_wire.h>
+#include <Wire.h>
+//#include <i2c_driver_wire.h>
 
 #ifndef Adafruit_I2CDevice_h
 #define Adafruit_I2CDevice_h

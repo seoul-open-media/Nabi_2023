@@ -38,8 +38,8 @@ typedef class HardwareSPI SPIClass;
 
 #include <Adafruit_GFX.h>
 #include <SPI.h>
-#include <i2c_driver_wire.h>
-
+//#include <i2c_driver_wire.h>
+#include <Wire.h>
 #if defined(__AVR__)
 typedef volatile uint8_t PortReg;
 typedef uint8_t PortMask;
