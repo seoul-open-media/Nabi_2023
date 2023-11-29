@@ -324,11 +324,12 @@ void setup() {
 
   //////////////////////////////////////////////////////////////SERIAL
   Serial.begin(9600);
+  /*
   if (DEBUG) {
     while (!Serial)
       ;
   }
-
+*/
   HWSERIAL.begin(58824);
   // HWSERIAL.begin(115200);
   delay(1000);
