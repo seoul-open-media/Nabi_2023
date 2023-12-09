@@ -22,17 +22,17 @@ void getHWSerial() {
 //          Serial.println();
       
         if (second_byte == FINAL_RESULT) {
-        Serial.println();
-        Serial.print("DistanceInfo: ");
+      //  Serial.println();
+      //  Serial.print("DistanceInfo: ");
         // read the raging rusult
         for (int i = 0; i < 3; i++) {
           distance_result[i] = HWSERIAL.read();
           //if (distance_result[i] == 0)MY_ADDRESS = (i + 1);
-          Serial.print(distance_result[i]);
-          Serial.print(", ");
+      //    Serial.print(distance_result[i]);
+      //    Serial.print(", ");
         }
 
-        Serial.println();
+     //   Serial.println();
         // read 5 dummy bytes
         for (int i = 0; i < 5; i++) {
           byte discard;
@@ -42,8 +42,8 @@ void getHWSerial() {
         // read elapsed_time
         elapsed_time = HWSERIAL.read();
 
-        Serial.print("eleapsed time: ");
-        Serial.println(elapsed_time);
+     //   Serial.print("eleapsed time: ");
+     //   Serial.println(elapsed_time);
 
         // checksum_received = HWSERIAL.read(); // s_data[103]
 
@@ -55,16 +55,16 @@ void getHWSerial() {
         isGetPosition = true;
 
         } else if (second_byte == FRAME_DATA) {
-        Serial.print("FrameInfo: ");
+     //   Serial.print("FrameInfo: ");
         for (int i = 0; i < 3; i++) {
                   
           frameMSB[i] = HWSERIAL.read();
           frameMiddleB[i] = HWSERIAL.read();
           frameLSB[i] = HWSERIAL.read();
           frame[i] =  frameMSB[i] * 255 * 255 + frameMiddleB[i] * 255 + frameLSB[i];
-          Serial.print(frameMSB[i]); Serial.print(", "); Serial.print(frameMiddleB[i]); Serial.print(", "); Serial.print(frameLSB[i]); Serial.print(", ");
+     //     Serial.print(frameMSB[i]); Serial.print(", "); Serial.print(frameMiddleB[i]); Serial.print(", "); Serial.print(frameLSB[i]); Serial.print(", ");
         }
-        Serial.println();
+      //  Serial.println();
 
         }
       

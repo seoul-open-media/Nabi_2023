@@ -1,9 +1,9 @@
 /*
- * - 3 stereo source
+   - 4 mono sources at -90(stream), 0(bird), 0(bell), 90(rain) degrees rotate upon heading with gaussian radius distribution
    - EBIMU applied
    - Neokey setup
    - Heading calibrated (towards 0 degree)
-   - 1 player with 4ch audio (44.1Khz,
+   - 1 player with 4ch audio (4 4.1Khz,
 
    TODO
    - LPS
@@ -12,16 +12,16 @@
 */
 
 
-#include "fourSourcesToStereo.h"
-#include "Wire.h"
+//#include "fourSourcesToStereo.h"
+#include <i2c_driver_wire.h>
 #include <SC16IS750.h>
 #include <string.h>
 #include <Arduino.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
-#include <play_wav.h>
-#include <Audio.h>
-#include <SPI.h>
+//#include <play_wav.h>
+//#include <Audio.h>
+//#include <SPI.h>
 //#include <SD.h>
 #include <SerialFlash.h>
 #include <Bounce2.h>
@@ -29,49 +29,33 @@
 #include <seesaw_neopixel.h>
 #include <EEPROM.h>
 #include <Filter.h>
-// GUItool: begin automatically generated code
-AudioPlayWav             playWav1;
-AudioPlayWav             playWav2;
-AudioPlayWav             playWav3;
-
-fourSourcesToStereo fourMonoPanner1;
-
-AudioOutputI2S           output;
-
-AudioMixer4              mixerL;         //L
-AudioMixer4              mixerR;         //R
-//AudioMixer4              mixer3;
-
-AudioConnection          patchCord1(playWav1, 0, mixerL, 0);
-AudioConnection          patchCord2(playWav1, 1, mixerR, 0);
-
-AudioConnection          patchCord3(playWav2, 0, mixerL, 1);
-AudioConnection          patchCord4(playWav2, 1, mixerR, 1);
-
-AudioConnection          patchCord5(playWav3, 0, mixerL, 2);
-AudioConnection          patchCord6(playWav3, 1, mixerR, 2);
-
-
-
-
-AudioConnection          patchCord9(mixerL, 0, output, 0);
-AudioConnection          patchCord10(mixerR, 0, output, 1);
-AudioControlSGTL5000     sgtl5000_1;     //xy=853,409
+//
+//// GUItool: begin automatically generated code
+//AudioPlayWav             playWav1;
+//
+//fourSourcesToStereo fourMonoPanner1;
+//
+//AudioOutputI2S           output;
+//
+//AudioAmplifier           amp1;
+//AudioAmplifier           amp2;
+//AudioAmplifier           amp3;
+//AudioAmplifier           amp4;
+//
+//AudioConnection          patchCord1(playWav1, 0, amp1, 0);
+//AudioConnection          patchCord2(playWav1, 1, amp2, 0);
+//AudioConnection          patchCord3(playWav1, 2, amp3, 0);
+//AudioConnection          patchCord4(playWav1, 3, amp4, 0);
+//
+//AudioConnection          patchCord5(amp1, 0, fourMonoPanner1, 0);
+//AudioConnection          patchCord6(amp2, 0, fourMonoPanner1, 1);
+//AudioConnection          patchCord7(amp3, 0, fourMonoPanner1, 2);
+//AudioConnection          patchCord8(amp4, 0, fourMonoPanner1, 3);
+//
+//AudioConnection          patchCord9(fourMonoPanner1, 0, output, 0);
+//AudioConnection          patchCord10(fourMonoPanner1, 1, output, 1);
+//AudioControlSGTL5000     sgtl5000_1;     //xy=853,409
 // GUItool: end automatically generated code
-
-#define numFiles 3
-AudioPlayWav *player[numFiles] = {
-  &playWav1,  &playWav2,  &playWav3
-};
-
-const char *filename[numFiles] = {
-  "BAC.WAV",
-  "RBR.WAV",
-  "00INTRO.WAV"
-
-};
-
-#define DEBUG 1
 
 // Headphone info
 #define MY_ADDRESS 1
@@ -84,9 +68,9 @@ byte my_address = MY_ADDRESS;
 #define TOTAL_NUM_ANCHORS 3 // 12
 #define POLL_ACK_CHECK_THRESHOLD 8///////////////////////// 8 total elapsed time around 170ms. with TOTAL_NUM_ANCHORS 20
 
-#define d 7 // distance bewteen Anchor1 and Anchor2
-#define p3_i 3.1 // x cordinate of Anchor3 
-#define p3_j 4.1 // y cordinate of Anchor3
+#define d 10.7 // distance bewteen Anchor1 and Anchor2
+#define p3_i 5.35 // x cordinate of Anchor3 
+#define p3_j 5.5 // y cordinate of Anchor3
 
 #define TOTAL_NUM_ZONE 2
 #define GROUP_NUM_POINT 4
@@ -97,7 +81,6 @@ byte my_address = MY_ADDRESS;
 #define SEND_SONG_INFO 1
 #define FINAL_RESULT 2
 #define EXCHANGE_FINISH 3
-#define FRAME_DATA 4
 
 #define S1_POS_DEG -90
 #define S2_POS_DEG 0
@@ -115,7 +98,7 @@ byte my_address = MY_ADDRESS;
 #define EP_ADDR_HEAD_OFFSET_MSB 1
 #define EP_ADDR_HEAD_OFFSET_LSB 2
 
-
+#define DEBUG false
 
 //Screen Settings
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
@@ -142,6 +125,7 @@ byte my_address = MY_ADDRESS;
 #define MODE 3
 
 bool cfg_mode = false;
+bool sendIMUdata = false;
 
 #define NORMAL_MODE 0
 #define RECORD_MODE 1
@@ -167,17 +151,28 @@ int row, num_menu = 0;
 #define STATE_ZONE_CHECK 0
 #define STATE_ZONE1 1
 #define STATE_ZONE2 2
+//
+//#if defined(__IMXRT1062__)
+//#define T4
+//#include <utility/imxrt_hw.h> // make available set_audioClock() for setting I2S freq on Teensy 4
+//#else
+//#define F_I2S ((((I2S0_MCR >> 24) & 0x03) == 3) ? F_PLL : F_CPU) // calculation for I2S freq on Teensy 3
+//#endif
 
+// SC16IS750 Instance for EBIMU
+SC16IS750 i2cuart = SC16IS750(SC16IS750_PROTOCOL_I2C, SC16IS750_ADDRESS_AA);
+
+// SSD1306 Instance
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire2, OLED_RESET);
+
+// Neokey Instance
+Adafruit_NeoKey_1x4 neokey;
 
 // smoothe instances for BNO055
 //Smoothed <float> smoothed1;
 //Smoothed <float> smoothed2;
 //Smoothed <float> smoothed3;
-//-------------FrameInfo----------------------
-byte frameMSB[3] = {0, 0, 0};
-byte frameMiddleB[3] = {0, 0, 0};
-byte frameLSB[3] = {0, 0, 0};
-int frame[3] = {0, 0, 0};
+
 
 //-------------IMU----------------------------
 String imuStart = "<start>";
@@ -213,7 +208,7 @@ byte distance_result[20];
 byte elapsed_time;
 byte checksum_received;  // to store ATmega serial checksum_received messge
 
-boolean isGetPosition, song_change_flag = false;
+boolean isGetPosition = false;
 
 int state_zone;
 uint8_t numZone = 0; // to store zone number
@@ -237,10 +232,10 @@ float zonePointY[TOTAL_NUM_ZONE][GROUP_NUM_POINT] = {
 };
 
 // -----------Mixer----------------------------
-float mixer_gain[4];
-float destination_gain[4];
-unsigned long lasttime_fade_update = 0;
-uint8_t fade_update_interval = 80;
+//float mixer_gain[4];
+//float destination_gain[4];
+//unsigned long lattime_fade_update = 0;
+//uint8_t fade_update_interval = 1;
 
 // --------------------------------------------
 volatile bool serialState = 0;
@@ -249,24 +244,6 @@ int action = 0;
 int serToAct = 0;
 long lastMillis, lastMillisImu, lastMillisImuUpdate, lastMillisSerial, calibMillis  = 0;
 
-
-
-
-#if defined(__IMXRT1062__)
-#define T4
-#include <utility/imxrt_hw.h> // make available set_audioClock() for setting I2S freq on Teensy 4
-#else
-#define F_I2S ((((I2S0_MCR >> 24) & 0x03) == 3) ? F_PLL : F_CPU) // calculation for I2S freq on Teensy 3
-#endif
-
-// SC16IS750 Instance for EBIMU
-SC16IS750 i2cuart = SC16IS750(SC16IS750_PROTOCOL_I2C, SC16IS750_ADDRESS_AA);
-
-// SSD1306 Instance
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire1, OLED_RESET);
-
-// Neokey Instance
-Adafruit_NeoKey_1x4 neokey;
 
 //-----------neoKey-----------------------------
 boolean update_screen = true;
@@ -304,6 +281,7 @@ int led_states[4] = {LOW, LOW, LOW, LOW};
 int neoKey_num, entry_counter = 0;
 bool neoKey_enter, neoKey_exit = false;
 
+
 // ================================================================
 // ===                      INITIAL SETUP                       ===
 // ================================================================
@@ -324,12 +302,11 @@ void setup() {
 
   //////////////////////////////////////////////////////////////SERIAL
   Serial.begin(9600);
-  /*
   if (DEBUG) {
     while (!Serial)
       ;
   }
-*/
+
   HWSERIAL.begin(58824);
   // HWSERIAL.begin(115200);
   delay(1000);
@@ -374,7 +351,7 @@ void setup() {
     Serial.println("SC16IS750 found" );
   }
 
-  delay(1000);
+  delay(500);
   EBimuCommand("<sor0>"); // set EBIMU to polling mode
   delay(500);
   // while (i2cuart.available())Serial.print(i2cuart.read());
@@ -404,61 +381,49 @@ void setup() {
   }
 
   /////////////////////////////////////////////////////////////SD
-  SPI.setMOSI(SDCARD_MOSI_PIN);
-  SPI.setSCK(SDCARD_SCK_PIN);
-  while (!(SD.begin(SDCARD_CS_PIN))) {
-    // stop here, but print a message repetitively
-    while (1) {
-      Serial.println("Unable to access the SD card");
-      displayData00();
-      delay(500);
-    }
-  }
-  Serial.println("SD card checked");
+  //  SPI.setMOSI(SDCARD_MOSI_PIN);
+  //  SPI.setSCK(SDCARD_SCK_PIN);
+  //  while (!(SD.begin(SDCARD_CS_PIN))) {
+  //    // stop here, but print a message repetitively
+  //    while (1) {
+  //      Serial.println("Unable to access the SD card");
+  //      displayData00();
+  //      delay(500);
+  //    }
+  //  }
+  //  Serial.println("SD card checked");
 
   /////////////////////////////////////////////////////////////AUDIO
-  fourMonoPanner1.setParamValue("Angle1", 0); // -6.283 ~ 6.283
-  fourMonoPanner1.setParamValue("Radius1", 1); // 0 ~ 5
-  fourMonoPanner1.setParamValue("Angle2", 1.578); // -6.283 ~ 6.283
-  fourMonoPanner1.setParamValue("Radius2", 1); // 0 ~ 5
-  fourMonoPanner1.setParamValue("Angle3", -1.578); // -6.283 ~ 6.283
-  fourMonoPanner1.setParamValue("Radius3", 1); // 0 ~ 5
-  fourMonoPanner1.setParamValue("Angle4", 1.578 * 2); // -6.283 ~ 6.283
-  fourMonoPanner1.setParamValue("Radius4", 1); // 0 ~ 5
-
-  sgtl5000_1.enable();
-  sgtl5000_1.volume(0.55);
-  AudioMemory(50);
-
-  setCoordinates();
-
+  //  fourMonoPanner1.setParamValue("Angle1", 0); // -6.283 ~ 6.283
+  //  fourMonoPanner1.setParamValue("Radius1", 1); // 0 ~ 5
+  //  fourMonoPanner1.setParamValue("Angle2", 1.578); // -6.283 ~ 6.283
+  //  fourMonoPanner1.setParamValue("Radius2", 1); // 0 ~ 5
+  //  fourMonoPanner1.setParamValue("Angle3", -1.578); // -6.283 ~ 6.283
+  //  fourMonoPanner1.setParamValue("Radius3", 1); // 0 ~ 5
+  //  fourMonoPanner1.setParamValue("Angle4", 1.578 * 2); // -6.283 ~ 6.283
+  //  fourMonoPanner1.setParamValue("Radius4", 1); // 0 ~ 5
+  //
+  //  sgtl5000_1.enable();
+  //  sgtl5000_1.volume(0.55);
+  //  AudioMemory(50);
+  //
+  //  setCoordinates();
+  //
   //  while (!playWav1.isPlaying()) {
   //    playWav1.play("4ch_mono.wav");
   //    delay(10);
   //  }
+  //
+  //  playWav1.loop(true);
+  //
+  //  amp1.gain(0);
+  //  amp2.gain(0);
+  //  amp3.gain(0);
+  //  amp4.gain(0);
 
-  playWav1.loop(true);
-
-
-/*
-  player[0]->play(filename[0]);
-  delay(100);
-  player[0]->pause(true);
-  player[0]->loop(true);
-  player[0]->setPosition(4410000);
-  player[0]->pause(false);
-*/
-
-  for (int i = 0; i < numFiles; i++) {
-    player[i]->play(filename[i]);
-    delay(100);
-    player[i]->pause(true);
-    player[i]->loop(true);
-  }
   /////////////////////////////////////////////////////////// INITIALIZE
 
   state = STATE_INIT; // initialize state
-
 
   Serial.println("End of Setup");
 
@@ -477,138 +442,123 @@ void loop() {
 
   getHWSerial();
 
-  if (isGetPosition) {
-    isGetPosition = false;
-    // checkZone();
+  // Send data through hardware Serial
+  if (sendIMUdata == true) {
+    getPosition();
+    sendIMUdata = false;
+    // cook the data first
+    //https://docs.google.com/spreadsheets/d/1aR-fx5U4oLUQDKwWFjrXY7WPd3voCX0Meu6QpmvIRqg/edit?usp=sharing
+    byte x1 = x * 10;
+    if (x1 > 254) x1 = 254;
+    byte y1 = y * 10;
+    if (y1 > 254) y1 = 254;
 
+    int imuHead1 = int(imuHead * 100);
+    byte imuHead_msb = int(imuHead1 / 255);
+    byte imuHead_lsb = int(imuHead1 % 255);
+
+    // imuRoll1 is between 0~180
+    byte imuRoll1 = int(imuRoll + 90);
+    if (imuRoll1 > 180) imuRoll1 = 180;
+    if (imuRoll1 < 0) imuRoll1 = 0;
+
+    // imuPitch1 is between 0~180
+    byte imuPitch1 = int(imuPitch + 90);
+    if (imuPitch1 > 180) imuPitch1 = 180;
+    if (imuPitch1 < 0) imuPitch1 = 0;
+    // 
+    byte lenData = 7;
+    byte s_data[lenData] = { 255, 0, 0, 0, 0, 0, 0};
+    s_data[1] = x1;
+    s_data[2] = y1;
+    s_data[3] = imuHead_msb;
+    s_data[4] = imuHead_lsb;
+    s_data[5] = imuRoll1;
+    s_data[6] = imuPitch1;
+    //Debug
+//    for(int i = 1;i<7; i++){
+//      Serial.print(s_data[i]); Serial.print(",");
+//    }
+//    Serial.println();
+    HWSERIAL.write(s_data, lenData);
+    
+   // Serial.println("IMU data sent");
   }
-  if (song_change_flag == true)playThisPlayerPauseOthers(numZone - 1);
-  updateMixerGain();
 
-  updateMixerGain();
+  //  if (isGetPosition) {
+  //    isGetPosition = false;
+  //    checkZone();
+  //  }
+  //
+  //  updateMixerGain();
 
   unsigned long currentMillis = millis();
 
-  /*
-    if (currentMillis - lastMillisImu > 50) {
-
-      lastMillisImu = currentMillis;
-
-      // sound sources positioned between -180 and 180 degree
-      degPos1 = S1_POS_DEG - imuHead;
-      degPos2 = S2_POS_DEG - imuHead;
-      degPos3 = S3_POS_DEG - imuHead;
-      degPos4 = S4_POS_DEG - imuHead;
-
-      // -180 ~ 180
-      if (degPos1 > 180) degPos1 -= 360;
-      else if (degPos1 < -180) degPos1 += 360;
-
-      if (degPos2 > 180) degPos2 -= 360;
-      else if (degPos2 < -180) degPos2 += 360;
-
-      if (degPos3 > 180) degPos3 -= 360;
-      else if (degPos3 < -180) degPos3 += 360;
-
-      if (degPos4 > 180) degPos4 -= 360;
-      else if (degPos4 < -180) degPos4 += 360;
-
-      fourMonoPanner1.setParamValue("Angle1", -degPos1 * deg2rad);
-      fourMonoPanner1.setParamValue("Angle2", -degPos2 * deg2rad);
-      fourMonoPanner1.setParamValue("Angle3", -degPos3 * deg2rad);
-      fourMonoPanner1.setParamValue("Angle4", -degPos4 * deg2rad);
-
-      // calculate gaussian volume distribution for each source
-      radius1 = gaussianRadius(degPos1 * deg2rad);
-      radius2 = gaussianRadius(degPos2 * deg2rad);
-      radius3 = gaussianRadius(degPos3 * deg2rad);
-      radius4 = gaussianRadius(degPos4 * deg2rad);
-
-      // apply it inverse proportionaly
-      scaled_radius1 = 5 * (1 - radius1);
-      scaled_radius2 = 5 * (1 - radius2);
-      scaled_radius3 = 5 * (1 - radius3);
-      scaled_radius4 = 5 * (1 - radius4);
-
-      fourMonoPanner1.setParamValue("Radius1", scaled_radius1); // 0 ~ 5
-      fourMonoPanner1.setParamValue("Radius2", scaled_radius2);
-      fourMonoPanner1.setParamValue("Radius3", scaled_radius3);
-      fourMonoPanner1.setParamValue("Radius4", scaled_radius4);
-      //   AudioInterrupts();
-    }
-  */
+  //
+  //  /*  Update decoder every 50ms.*/
+  //  if (currentMillis - lastMillisImu > 50) {
+  //
+  //    lastMillisImu = currentMillis;
+  //
+  //    // sound sources positioned between -180 and 180 degree
+  //    degPos1 = S1_POS_DEG - imuHead;
+  //    degPos2 = S2_POS_DEG - imuHead;
+  //    degPos3 = S3_POS_DEG - imuHead;
+  //    degPos4 = S4_POS_DEG - imuHead;
+  //
+  //    // -180 ~ 180
+  //    if (degPos1 > 180) degPos1 -= 360;
+  //    else if (degPos1 < -180) degPos1 += 360;
+  //
+  //    if (degPos2 > 180) degPos2 -= 360;
+  //    else if (degPos2 < -180) degPos2 += 360;
+  //
+  //    if (degPos3 > 180) degPos3 -= 360;
+  //    else if (degPos3 < -180) degPos3 += 360;
+  //
+  //    if (degPos4 > 180) degPos4 -= 360;
+  //    else if (degPos4 < -180) degPos4 += 360;
+  //
+  //    fourMonoPanner1.setParamValue("Angle1", -degPos1 * deg2rad);
+  //    fourMonoPanner1.setParamValue("Angle2", -degPos2 * deg2rad);
+  //    fourMonoPanner1.setParamValue("Angle3", -degPos3 * deg2rad);
+  //    fourMonoPanner1.setParamValue("Angle4", -degPos4 * deg2rad);
+  //
+  //    // calculate gaussian volume distribution for each source
+  //    radius1 = gaussianRadius(degPos1 * deg2rad);
+  //    radius2 = gaussianRadius(degPos2 * deg2rad);
+  //    radius3 = gaussianRadius(degPos3 * deg2rad);
+  //    radius4 = gaussianRadius(degPos4 * deg2rad);
+  //
+  //    // apply it inverse proportionaly
+  //    scaled_radius1 = 5 * (1 - radius1);
+  //    scaled_radius2 = 5 * (1 - radius2);
+  //    scaled_radius3 = 5 * (1 - radius3);
+  //    scaled_radius4 = 5 * (1 - radius4);
+  //
+  //    fourMonoPanner1.setParamValue("Radius1", scaled_radius1); // 0 ~ 5
+  //    fourMonoPanner1.setParamValue("Radius2", scaled_radius2);
+  //    fourMonoPanner1.setParamValue("Radius3", scaled_radius3);
+  //    fourMonoPanner1.setParamValue("Radius4", scaled_radius4);
+  //    //   AudioInterrupts();
+  //  }
+  //
   if (currentMillis - lastMillisSerial > 1000) {
     lastMillisSerial = millis();
-    displayData07();
+    displayData05();
     if (DEBUG) {
       Serial.print("Angle: "); Serial.print(degPos1); Serial.print(", "); Serial.print(degPos2); Serial.print(", "); Serial.print(degPos3); Serial.print(", "); Serial.println(degPos4);
       Serial.print("Radius: "); Serial.print(radius1); Serial.print(", "); Serial.print(radius2); Serial.print(", "); Serial.print(radius3); Serial.print(", "); Serial.println(radius4);
       Serial.print("Scaled_Radius: "); Serial.print(scaled_radius1); Serial.print(", "); Serial.print(scaled_radius2); Serial.print(", "); Serial.print(scaled_radius3); Serial.print(", "); Serial.println(scaled_radius4);
     }
   }
-
 }
 
 //float value=exp(-0.5*pow((x-mean)/sigma,2.));
 //you will want to choose mean, sigma and scale the output value appropriately
-float gaussianRadius(float x) {
-  float gaussian_radius;
-  float sigma = 1;
-  gaussian_radius = exp(-0.5 * pow((x) / sigma, 2.));
-  return gaussian_radius;
-}
-
-void playThisPlayerPauseOthers(int num_player) {
-  for (int i = 0; i < numFiles; i++) {
-    if (i == num_player) {
-      if (player[i]->isPaused()){
-        // 1fame = 1000 / 25ms. = 40ms. 
-        //frame[i] * 40 = total_duration_in_ms
-        //total_ellapsed_samples =  total_duration_in_ms * 44.1
-        // so, 
-        player[0]->setPosition(int(frame[i] * 40* 44.1 + 1200)); 
-        player[i]->pause(false);
-      }
-    } else {
-      if (mixer_gain[num_player] == 1.0) {
-        if (player[i]->isPlaying())player[i]->pause(true);
-        song_change_flag = false;
-      }
-    }
-  }
-}
-
-void serialEvent() {
-  serialState = 1;
-  char serial_byte = Serial.read();
-
-  if (DEBUG) {
-    if (Serial.available()) {
-      Serial.print("serial_byte = "); Serial.println(serial_byte);
-    }
-  }
-
-  if (serial_byte == '1') {
-    numZone = 1;
-    fadeZone1();
-    song_change_flag = true;
-
-  } else if (serial_byte == '2') {
-    numZone = 2;
-    fadeZone2();
-    song_change_flag = true;
-  } else if (serial_byte == '3') {
-    numZone = 3;
-    fadeZone3();
-    song_change_flag = true;
-  } else if (serial_byte == '4') {
-    fadeZone4();
-    numZone = 4;
-    song_change_flag = true;
-  }
-
-  Serial.clear();
-  while (Serial.available()) {
-    Serial.read();
-  }
-}
+//float gaussianRadius(float x) {
+//  float gaussian_radius;
+//  float sigma = 1;
+//  gaussian_radius = exp(-0.5 * pow((x) / sigma, 2.));
+//  return gaussian_radius;
+//}

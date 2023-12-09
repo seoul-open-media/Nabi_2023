@@ -13,10 +13,10 @@ void updateMixerGain() {
     for (int i = 0; i < 4; i++) {
       mixerL.gain(i, mixer_gain[i]); // L
       mixerR.gain(i, mixer_gain[i]); // R
-      Serial.print(mixer_gain[i]); Serial.print(", ");
+  //    Serial.print(mixer_gain[i]); Serial.print(", ");
       
    }
-    Serial.println();
+//    Serial.println();
     lasttime_fade_update = millis();
   }
 

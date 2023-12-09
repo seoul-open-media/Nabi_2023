@@ -356,35 +356,35 @@ void sendDistance() {
 
 void sendFrameData() {
   /*
-  byte len_data = 11;
-  // 255, FRAME_DATA, frameMSB[0], frameMiddleB[0], frameLSB[0], frameMSB[1], frameMiddleB[1],frameLSB[1],frameMSB[2], frameMiddleB[2],frameLSB[2]
-  byte f_data[len_data] = {255, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0};
-  f_data[1] = FRAME_DATA;
+    byte len_data = 11;
+    // 255, FRAME_DATA, frameMSB[0], frameMiddleB[0], frameLSB[0], frameMSB[1], frameMiddleB[1],frameLSB[1],frameMSB[2], frameMiddleB[2],frameLSB[2]
+    byte f_data[len_data] = {255, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0};
+    f_data[1] = FRAME_DATA;
 
-  f_data[2] = frameMSB[0];
-  f_data[3] = frameMiddleB[0];
-  f_data[4] = frameLSB[0];
+    f_data[2] = frameMSB[0];
+    f_data[3] = frameMiddleB[0];
+    f_data[4] = frameLSB[0];
 
-  f_data[5] = frameMSB[1];
-  f_data[6] = frameMiddleB[1];
-  f_data[7] = frameLSB[1];
+    f_data[5] = frameMSB[1];
+    f_data[6] = frameMiddleB[1];
+    f_data[7] = frameLSB[1];
 
-  f_data[8] = frameMSB[2];
-  f_data[9] = frameMiddleB[2];
-  f_data[10] = frameLSB[2];
+    f_data[8] = frameMSB[2];
+    f_data[9] = frameMiddleB[2];
+    f_data[10] = frameLSB[2];
 
 
 
-  Serial.write(f_data, len_data);
+    Serial.write(f_data, len_data);
   */
-  Serial.write(255);Serial.write(FRAME_DATA);
-  oled.clear();
-  oled.print("frame data: ");
+  Serial.write(255); Serial.write(FRAME_DATA);
+//  oled.clear();
+  // oled.print("frame data: ");
   for (int i = 0; i < 3; i++) {
-    oled.print(frameMSB[i]); oled.print(", "); oled.print(frameMiddleB[i]); oled.print(", "); oled.print(frameLSB[i]); oled.print(", ");
-   Serial.write(frameMSB[i]);Serial.write(frameMiddleB[i]);Serial.write(frameLSB[i]);
+ //   oled.print(frameMSB[i]); oled.print(", "); oled.print(frameMiddleB[i]); oled.print(", "); oled.print(frameLSB[i]); oled.println(", ");
+    Serial.write(frameMSB[i]); Serial.write(frameMiddleB[i]); Serial.write(frameLSB[i]);
   }
-  oled.println();
+//  oled.println();
 }
 
 void loop() {
@@ -615,12 +615,13 @@ void twrResponder() {
     byte to_address = r_data[17];
     byte from_address = r_data[18];
     byte _message = r_data[19];
-    
-    if (from_address == 5) {
-      oled.clear();
-      oled.print("from");
-      oled.println(from_address);
-    }
+    /*
+        if (from_address == 5) {
+          oled.clear();
+          oled.print("from");
+          oled.println(from_address);
+        }
+    */
     //Serial.print("msgId"); Serial.print(msgId); Serial.print("mode"); Serial.print(mode_from_sender); Serial.print("to_address"); Serial.print(to_address); Serial.print("from_address"); Serial.print(from_address); Serial.print("_message"); Serial.println(_message);
     ////////////if the master's message matches my address, switch to initiator_mode
     if (from_address == master_address) {
@@ -669,6 +670,7 @@ void twrResponder() {
 
       sendFrameData();
       r_resetInactive();
+      noteActivity();
 
     }
 

@@ -90,7 +90,7 @@ void handleReceived() {
 void loop() {
   // put your main code here, to run repeatedly:
 
-for (int i=0; i< 3; i++){
+for (int i=0; i< 4; i++){
   DW1000Ng::forceTRxOff();
   data[18] = master_address;
   data[19] = i+1;
@@ -100,6 +100,18 @@ for (int i=0; i< 3; i++){
  // Serial.write (1);
   delay(50); // 3 anchors so it should be much shorter than 100
 }
+for (int i=4; i< 7; i++){
+  DW1000Ng::forceTRxOff();
+  data[18] = master_address;
+  data[19] = i+1;
+  DW1000Ng::setTransmitData(data, LEN_DATA);
+  DW1000Ng::startTransmit();
+ // Serial.write (255);
+ // Serial.write (1);
+  delay(50); // 3 anchors so it should be much shorter than 100
+}
+
+
   /*
   DW1000Ng::forceTRxOff();
   data[18] = master_address;
