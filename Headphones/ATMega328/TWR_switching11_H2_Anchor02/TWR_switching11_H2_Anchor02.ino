@@ -17,8 +17,7 @@
 #include <DW1000NgTime.hpp>
 #include <DW1000NgConstants.hpp>
 
-#define my_address  106
-
+#define my_address  101
 
 // 101 ~112
 

@@ -65,7 +65,7 @@ AudioPlayWav *player[numFiles] = {
 };
 
 const char *filename[numFiles] = {
-  "00INTRO.WAV",
+  "ZONE3_TEST.WAV",
   "BAC.WAV",
   "RBR.WAV"
 };
@@ -523,7 +523,7 @@ void loop() {
       //  Serial.println("ZONE1");
 
     } else if (pointInPolygon(x, y, 3)) {
-      
+
       if (imuHead <= 70) {
         numZone = 1;
         fadeZone1();
@@ -532,7 +532,7 @@ void loop() {
         numZone = 2;
         fadeZone2();
         song_change_flag = true;
-      } else if (imuHead >= 152){
+      } else if (imuHead >= 152) {
         numZone = 3;
         fadeZone3();
         song_change_flag = true;
@@ -637,8 +637,23 @@ void playThisPlayerPauseOthers(int num_player) {
         // 1fame = 1000 / 25ms. = 40ms.
         //frame[i] * 40 = total_duration_in_ms
         //total_ellapsed_samples =  total_duration_in_ms * 44.1
-        // so,
-        player[i]->setPosition(int(frame[i] * 40 * 44.1 + 1200));
+        // so,/home/byungjun/Documents/movie_audio/ZONE3_TEST.WAV
+        float one_frame_duration;
+        switch (i) {
+          case 0:
+            one_frame_duration = 1000 / 23.98;
+            break;
+          case 1:
+            one_frame_duration = 1000 / 25;
+            break;
+          case 2:
+            one_frame_duration = 1000 / 25;
+            break;
+
+          default:
+            break;
+        }
+        player[i]->setPosition(int(frame[i] * one_frame_duration * 44.1 + 1200));
         player[i]->pause(false);
       }
     } else {
